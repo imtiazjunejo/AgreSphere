@@ -80,3 +80,4 @@ export function generateCropReport(project, activities, distribution, saleAmount
 
   doc.save(`${project.name}_report.pdf`);
 }
+ 

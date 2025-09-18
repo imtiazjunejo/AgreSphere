@@ -21,10 +21,12 @@ app.use(cookieParser());
 // Routes decleration
 import authRouter from "./routes/auth.routes.js";
 import messageRouter from "./routes/message.routes.js";
+import croplogRouter from "./routes/croplog.routes.js";
 
 
 // Routes calls
 app.use("/api/v1/auth", authRouter)
 app.use("/api/v1/message", messageRouter)
+app.use("/api/v1/cropLogs", croplogRouter);
 
 app.use(errorHandler)
