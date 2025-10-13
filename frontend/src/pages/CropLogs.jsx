@@ -1,78 +1,88 @@
-
-
 import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Download } from "lucide-react";
 import { exportToPDF, exportToWord, exportToExcel } from "../utils/exportUtils";
-
-/**
- * CropLogs.jsx
- * - Multiple farmers (add/remove) when "Hire Farmer" is checked
- * - Farmer total = 25% of total net profit, split equally among farmers
- * - Sale & Distribution: shows Gross Sale, Expenses (deduction), Net Profit, then distribution rows
- * - Distribution shown only after clicking "Calculate Distribution"
- * - Activities add/edit/delete; activities drive expenses
- */
+import { useCropLogsStore } from "../store/useCropLogsStore";  // ✅ backend store
 
 // small currency formatter
 const fmt = (n) =>
   typeof n === "number"
-    ? `Rs ${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    ? `Rs ${n.toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`
     : "Rs 0.00";
 
 export default function CropLogs() {
-  const [project, setProject] = useState(null);
-  const [activities, setActivities] = useState([]);
+  const {
+    project,
+    activities,
+    fetchProject,
+    createOrUpdateProject,
+    deleteProject,
+    addOrUpdateActivity,
+    deleteActivity,
+  } = useCropLogsStore();
+
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [editingActivity, setEditingActivity] = useState(null);
   const [isEditingProject, setIsEditingProject] = useState(false);
 
   const [saleAmount, setSaleAmount] = useState("");
-  const [distribution, setDistribution] = useState(null); // computed distribution object (shown after calculate)
+  const [distribution, setDistribution] = useState(null);
 
-  // expenses are derived from activities
-  const totalExpenses = activities.reduce((s, a) => s + (Number(a.cost) || 0), 0);
+  useEffect(() => {
+    const load = async () => {
+      await fetchProject();
+    };
+    load();
+  }, [fetchProject]);
+
+  // ✅ Restore sale amount after project is fetched
+  useEffect(() => {
+    if (project?.saleAmount) {
+      setSaleAmount(project.saleAmount);
+    }
+  }, [project]);
+
+
+console.log("📌 Project:", project ? JSON.stringify(project, null, 2) : "null");
+console.log("📌 Activities:", JSON.stringify(activities, null, 2));
+console.log("📌 fetchProject is a function?", typeof fetchProject);
+
+  
+
+  const totalExpenses = activities.reduce(
+    (s, a) => s + (Number(a.cost) || 0),
+    0
+  );
 
   // ---------------- Project handlers ----------------
-  const handleCreateOrUpdateProject = (data) => {
-    // ensure structure
-    const normalized = {
-      ...data,
-      farmers: Array.isArray(data.farmers) ? data.farmers.filter(Boolean) : [],
-      leaseAmount: Number(data.leaseAmount || 0),
-    };
-    setProject(normalized);
+  const handleCreateOrUpdateProject = async (data) => {
+    await createOrUpdateProject(data);
     setShowProjectModal(false);
     setIsEditingProject(false);
-    setDistribution(null); // reset distribution on project change
+    setDistribution(null);
   };
 
-  const handleDeleteProject = () => {
+  const handleDeleteProject = async () => {
     if (!confirm("Delete this project?")) return;
-    setProject(null);
-    setActivities([]);
+    await deleteProject();
     setSaleAmount("");
     setDistribution(null);
   };
 
   // ---------------- Activity handlers ----------------
-  const handleAddOrUpdateActivity = (payload) => {
-    if (payload.id) {
-      // update existing
-      setActivities((prev) => prev.map((a) => (a.id === payload.id ? payload : a)));
-    } else {
-      // create new
-      payload.id = Date.now();
-      setActivities((prev) => [...prev, payload]);
-    }
+  const handleAddOrUpdateActivity = async (payload) => {
+    await addOrUpdateActivity(payload);
     setShowActivityModal(false);
     setEditingActivity(null);
-    setDistribution(null); // reset distribution when activities change
+    setDistribution(null);
   };
 
-  const handleDeleteActivity = (id) => {
+  const handleDeleteActivity = async (id) => {
     if (!confirm("Delete this activity?")) return;
-    setActivities((prev) => prev.filter((a) => a.id !== id));
+    await deleteActivity(id);
     setDistribution(null);
   };
 
@@ -85,7 +95,6 @@ export default function CropLogs() {
       distribution: distribution || computeDistribution(),
     };
 
-    // Show choice to user
     const choice = prompt("Export as: pdf / word / excel").toLowerCase();
     if (choice === "pdf") {
       await exportToPDF(data);
@@ -98,11 +107,11 @@ export default function CropLogs() {
     }
   };
 
-  // ---------------- Distribution calc (on button click) ----------------
+  // ---------------- Distribution calc ----------------
   function computeDistribution() {
     const sale = Number(saleAmount || 0);
     const expensesSum = totalExpenses;
-    const netProfit = sale - expensesSum; // can be negative
+    const netProfit = sale - expensesSum;
     const farmersCount = project?.farmers?.length || 0;
     const hasFarmer = !!project?.hasFarmer && farmersCount > 0;
 
@@ -123,14 +132,14 @@ export default function CropLogs() {
     } else if (project.farmingType === "lease") {
       farmerTotalShare = hasFarmer ? netProfit * 0.25 : 0;
       userBeforeLease = netProfit - farmerTotalShare;
-      userFinal = userBeforeLease - lease; // lease is paid by user (deducted from user's share)
+      userFinal = userBeforeLease - lease;
     } else {
-      // owner farming
       farmerTotalShare = hasFarmer ? netProfit * 0.25 : 0;
       userFinal = netProfit - farmerTotalShare;
     }
 
-    const perFarmer = hasFarmer && farmersCount > 0 ? farmerTotalShare / farmersCount : 0;
+    const perFarmer =
+      hasFarmer && farmersCount > 0 ? farmerTotalShare / farmersCount : 0;
 
     return {
       sale,
@@ -145,24 +154,38 @@ export default function CropLogs() {
     };
   }
 
-  const handleCalculateDistribution = () => {
+  const handleCalculateDistribution = async () => {
     if (!project) return alert("Create a project first");
     if (!saleAmount || Number(saleAmount) === 0) {
       if (!confirm("Sale amount is zero or empty — continue?")) return;
     }
-    setDistribution(computeDistribution());
-  };
+      // ✅ Save sale amount to backend project
+    await createOrUpdateProject({
+      ...project,
+      saleAmount: Number(saleAmount)
+    });
 
-  // ---------------- UI: no project -> prompt ----------------
+    // ✅ Refresh project from backend to keep data in sync
+    await fetchProject();
+
+    setDistribution(computeDistribution());
+    };
+
+  // ---------------- UI ----------------
   if (!project) {
     return (
       <div className="p-10 min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gray-50">
         <div className="max-w-2xl w-full bg-white rounded-xl shadow-lg p-8 text-center">
           <h2 className="text-2xl font-bold mb-2">No Crop Project</h2>
-          <p className="text-gray-600 mb-6">Create a project to track activities, expenses and distribution.</p>
+          <p className="text-gray-600 mb-6">
+            Create a project to track activities, expenses and distribution.
+          </p>
           <div className="flex justify-center gap-3">
             <button
-              onClick={() => { setIsEditingProject(false); setShowProjectModal(true); }}
+              onClick={() => {
+                setIsEditingProject(false);
+                setShowProjectModal(true);
+              }}
               className="px-6 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white shadow"
             >
               ➕ New Crop Project
@@ -181,9 +204,11 @@ export default function CropLogs() {
     );
   }
 
-  // ---------------- Main page when project exists ----------------
-  return (
-    <div className="p-6 min-h-[calc(100vh-4rem)] bg-gray-200 space-y-6">
+  // ✅ From here down, your UI stays unchanged (activities table, modals, buttons…)
+  // The only difference is that project & activities are synced from backend.
+
+ return (
+    <div className="p-6 min-h-[calc(100vh-4rem)] space-y-6">
       {/* Header card */}
       <div className="bg-white rounded-xl shadow p-5 flex flex-col md:flex-row md:justify-between md:items-start gap-4">
         <div>
@@ -208,14 +233,16 @@ export default function CropLogs() {
           <ActionButton onClick={() => { setIsEditingProject(true); setShowProjectModal(true); }} color="blue" icon={<Edit size={16} />}>Edit</ActionButton>
           <ActionButton onClick={() => { handleDownload(); }} color="yellow" icon={<Download size={16} />}>Export</ActionButton>
           <ActionButton onClick={handleDeleteProject} color="red" icon={<Trash2 size={16} />}>Delete</ActionButton>
-          <ActionButton onClick={() => { setProject(null); setShowProjectModal(true); }} color="green" icon={<Plus size={16} />}>New</ActionButton>
+          {/* <ActionButton onClick={() => { setProject(null); setShowProjectModal(true); }} color="green" icon={<Plus size={16} />}>New</ActionButton> */}
+          <ActionButton onClick={() => { setIsEditingProject(false); setShowProjectModal(true); }} color="green" icon={<Plus size={16} />}> New </ActionButton>
+
         </div>
       </div>
 
       {/* Activities table */}
       <div className="bg-white rounded-xl shadow overflow-auto">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-100">
+          <thead className="bg-gray-200">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Date</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Activity</th>
@@ -232,7 +259,7 @@ export default function CropLogs() {
               </tr>
             ) : (
               activities.map((a) => (
-                <tr key={a.id} className="hover:bg-gray-50">
+                <tr key={a._id || (a.data + a.activity)} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm text-gray-700">{a.date}</td>
                   <td className="px-4 py-3 font-medium">{a.activity}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{a.notes}</td>
@@ -265,7 +292,7 @@ export default function CropLogs() {
             placeholder="Gross sale amount (Rs)"
             className="p-2 border rounded-md bg-white"
           />
-          <ActionButton color="blue" onClick={handleCalculateDistribution} icon={<Plus size={12} />}>Calculate Distribution</ActionButton>
+          <ActionButton color="green" onClick={handleCalculateDistribution} icon={<Plus size={12} />}>Calculate Distribution</ActionButton>
         </div>
       </div>
 
@@ -279,7 +306,7 @@ export default function CropLogs() {
             <>
               <ul className="space-y-2">
                 {activities.map((a) => (
-                  <li key={a.id} className="flex justify-between text-sm">
+                  <li key={a._id} className="flex justify-between text-sm">
                     <span>{a.activity} — {a.date}</span>
                     <span>{fmt(a.cost)}</span>
                   </li>
@@ -411,12 +438,41 @@ export default function CropLogs() {
         <ActivityModal
           activity={editingActivity}
           onClose={() => { setShowActivityModal(false); setEditingActivity(null); }}
-          onSubmit={(payload) => handleAddOrUpdateActivity(payload)}
+          onSubmit={(payload) => handleAddOrUpdateActivity({
+                    ...payload,
+                    id: editingActivity?._id || editingActivity?.id || null,  // ✅ preserve id
+                    clientId: editingActivity?.clientId || null, // keep clientId if offline/local
+                  })}
         />
       )}
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* ---------------- Project Modal ---------------- */
 function ProjectModal({ project, onClose, onSubmit }) {

@@ -10,6 +10,7 @@ import About from './pages/About';
 import { Contact } from 'lucide-react';
 import ContactPage from './pages/ContactPage';
 import CropLogs from './pages/CropLogs';
+import ProfitLoss from './pages/ProfitLoss';
 
 const AppRoutes = () => {
   return (
@@ -17,6 +18,7 @@ const AppRoutes = () => {
       <Route path="/" element={<HomePage />} />
       <Route path="/dashboard" element={<DashboardPage />} />
       <Route path="/crop-logs" element={<CropLogs />} />
+      <Route path="/profit-loss" element={<ProfitLoss />} />
       <Route path="/landmanagement" element={<LandManagement />} />
       <Route path="/farmerNetwork" element={<FarmerNetwork />} />
       <Route path="/cropGuidance" element={<CropGuidance />} />

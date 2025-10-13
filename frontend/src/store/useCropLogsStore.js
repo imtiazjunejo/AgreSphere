@@ -1,287 +1,208 @@
-// // frontend/store/useCropLogsStore.js
-// import { create } from "zustand";
-// import { axiosInstance } from "../lib/axios";
-
-// export const useCropLogsStore = create((set, get) => ({
-//   cropLogs: [],
-//   loading: false,
-//   error: null,
-
-//   // 🔹 Fetch all crop logs
-//   fetchCropLogs: async () => {
-//     set({ loading: true, error: null });
-//     try {
-//       const res = await axiosInstance.get("/crop-logs");
-//       set({ cropLogs: res.data.data || [], loading: false });
-//     } catch (err) {
-//       console.error("Error fetching crop logs:", err);
-//       set({ error: "Failed to fetch crop logs", loading: false });
-//     }
-//   },
-
-//   // 🔹 Add new crop log
-//   addCropLog: async (data) => {
-//     try {
-//       const res = await axiosInstance.post("/crop-logs", data);
-//       set((state) => ({
-//         cropLogs: [res.data.data, ...state.cropLogs],
-//       }));
-//     } catch (err) {
-//       console.error("Error adding crop log:", err);
-//     }
-//   },
-
-//   // 🔹 Update crop log
-//   updateCropLog: async (id, data) => {
-//     try {
-//       const res = await axiosInstance.put(`/crop-logs/${id}`, data);
-//       set((state) => ({
-//         cropLogs: state.cropLogs.map((log) =>
-//           log._id === id ? res.data.data : log
-//         ),
-//       }));
-//     } catch (err) {
-//       console.error("Error updating crop log:", err);
-//     }
-//   },
-
-//   // 🔹 Delete crop log
-//   deleteCropLog: async (id) => {
-//     try {
-//       await axiosInstance.delete(`/crop-logs/${id}`);
-//       set((state) => ({
-//         cropLogs: state.cropLogs.filter((log) => log._id !== id),
-//       }));
-//     } catch (err) {
-//       console.error("Error deleting crop log:", err);
-//     }
-//   },
-
-//   // 🔹 Add activity (update whole crop log)
-//   addActivity: async (cropLogId, activity) => {
-//     try {
-//       const cropLog = get().cropLogs.find((log) => log._id === cropLogId);
-//       if (!cropLog) return;
-
-//       const updatedLog = {
-//         ...cropLog,
-//         activities: [...cropLog.activities, activity],
-//       };
-
-//       const res = await axiosInstance.put(`/crop-logs/${cropLogId}`, updatedLog);
-//       set((state) => ({
-//         cropLogs: state.cropLogs.map((log) =>
-//           log._id === cropLogId ? res.data.data : log
-//         ),
-//       }));
-//     } catch (err) {
-//       console.error("Error adding activity:", err);
-//     }
-//   },
-
-//   // 🔹 Update activity
-//   updateActivity: async (cropLogId, activityId, data) => {
-//     try {
-//       const cropLog = get().cropLogs.find((log) => log._id === cropLogId);
-//       if (!cropLog) return;
-
-//       const updatedLog = {
-//         ...cropLog,
-//         activities: cropLog.activities.map((a) =>
-//           a._id === activityId ? { ...a, ...data } : a
-//         ),
-//       };
-
-//       const res = await axiosInstance.put(`/crop-logs/${cropLogId}`, updatedLog);
-//       set((state) => ({
-//         cropLogs: state.cropLogs.map((log) =>
-//           log._id === cropLogId ? res.data.data : log
-//         ),
-//       }));
-//     } catch (err) {
-//       console.error("Error updating activity:", err);
-//     }
-//   },
-
-//   // 🔹 Delete activity
-//   deleteActivity: async (cropLogId, activityId) => {
-//     try {
-//       const cropLog = get().cropLogs.find((log) => log._id === cropLogId);
-//       if (!cropLog) return;
-
-//       const updatedLog = {
-//         ...cropLog,
-//         activities: cropLog.activities.filter((a) => a._id !== activityId),
-//       };
-
-//       const res = await axiosInstance.put(`/crop-logs/${cropLogId}`, updatedLog);
-//       set((state) => ({
-//         cropLogs: state.cropLogs.map((log) =>
-//           log._id === cropLogId ? res.data.data : log
-//         ),
-//       }));
-//     } catch (err) {
-//       console.error("Error deleting activity:", err);
-//     }
-//   },
-
-//   // 🔹 Mark activity as done (local only)
-//   markActivityDone: (cropLogId, activityId) => {
-//     set((state) => ({
-//       cropLogs: state.cropLogs.map((log) =>
-//         log._id === cropLogId
-//           ? {
-//               ...log,
-//               activities: log.activities.map((a) =>
-//                 a._id === activityId ? { ...a, status: "Done" } : a
-//               ),
-//             }
-//           : log
-//       ),
-//     }));
-//   },
-// }));
-
-
-
-// frontend/store/useCropLogsStore.js
 import { create } from "zustand";
 import { axiosInstance } from "../lib/axios";
+ import { v4 as uuidv4 } from "uuid";
 
+/**
+ * Store responsibilities:
+ * - maintain list of cropLogs (for listing)
+ * - maintain selectedCropLogId (current open project)
+ * - keep `project` as the project subdocument (NOT the full cropLog doc)
+ * - keep `activities` synced with backend
+ *
+ * Backend responses are assumed to be ApiResponse-like:
+ * { data: <payload> } so we use res.data.data
+ */
 export const useCropLogsStore = create((set, get) => ({
-  projects: [],
+  cropLogs: [],            // list of cropLog documents (full docs)
+  selectedCropLogId: null, // currently opened cropLog._id
+  project: null,           // the project subdocument (cropLog.project)
+  activities: [],          // current cropLog.activities
+  loading: false,
+  error: null,
 
-  /* -------- Fetch all projects -------- */
-  fetchProjects: async () => {
+  // Fetch all cropLogs for user (for listing)
+  fetchProject: async () => {
+    set({ loading: true, error: null });
     try {
-      const res = await axiosInstance.get("/cropLogs");
-      set({ projects: res.data || [] });
+      const res = await axiosInstance.get("/crop-logs");
+      const list = res?.data?.data || [];
+      set({ cropLogs: list, loading: false });
     } catch (err) {
-      console.error("❌ Error fetching projects:", err);
+      console.error("❌ Error fetching crop logs:", err);
+      set({ error: "Failed to fetch crop logs", loading: false });
     }
   },
 
-  /* -------- Add new project -------- */
-  addProject: async (data) => {
+  // Select/open a particular cropLog by id (load its project & activities)
+  fetchCropLogById: async (id) => {
+    if (!id) return;
+    set({ loading: true, error: null });
     try {
-      const res = await axiosInstance.post("/cropLogs", data);
-      set((state) => ({
-        projects: [...state.projects, res.data],
-      }));
+      const res = await axiosInstance.get(`/crop-logs/${id}`);
+      const doc = res?.data?.data;
+      set({
+        selectedCropLogId: doc?._id || null,
+        project: doc?.project || null,
+        activities: doc?.activities || [],
+        loading: false,
+      });
     } catch (err) {
-      console.error("❌ Error adding project:", err);
+      console.error("❌ Error fetching crop log by id:", err);
+      set({ error: "Failed to fetch crop log", loading: false });
     }
   },
 
-  /* -------- Update project -------- */
-  updateProject: async (id, data) => {
+  // Quick helper: fetch first project (useful for initial load)
+  fetchFirstProject: async () => {
+    set({ loading: true, error: null });
     try {
-      const res = await axiosInstance.put(`/cropLogs/${id}`, data);
-      set((state) => ({
-        projects: state.projects.map((p) =>
-          p.id === id ? { ...p, ...res.data } : p
-        ),
-      }));
+      const res = await axiosInstance.get("/crop-logs");
+      const list = res?.data?.data || [];
+      const first = list.length > 0 ? list[0] : null;
+      set({
+        cropLogs: list,
+        selectedCropLogId: first?._id || null,
+        project: first?.project || null,
+        activities: first?.activities || [],
+        loading: false,
+      });
     } catch (err) {
-      console.error("❌ Error updating project:", err);
+      console.error("❌ Error fetching first project:", err);
+      set({ error: "Failed to fetch project", loading: false });
     }
   },
 
-  /* -------- Delete project -------- */
-  deleteProject: async (id) => {
+  // Create a new cropLog (project). Backend expects `body.project`
+  createOrUpdateProject: async (projectPayload) => {
     try {
-      await axiosInstance.delete(`/cropLogs/${id}`);
-      set((state) => ({
-        projects: state.projects.filter((p) => p.id !== id),
+      const res = await axiosInstance.post("/crop-logs", { project: projectPayload });
+      const doc = res?.data?.data;
+      // add to list and select it
+      set((s) => ({
+        cropLogs: [doc, ...(s.cropLogs || [])],
+        selectedCropLogId: doc?._id || null,
+        project: doc?.project || null,
+        activities: doc?.activities || [],
       }));
+      return doc;
+    } catch (err) {
+      console.error("❌ Error creating project:", err);
+      throw err;
+    }
+  },
+
+  // Delete a cropLog by currently selected id
+  deleteSelectedProject: async () => {
+    try {
+      const id = get().selectedCropLogId;
+      if (!id) return;
+      await axiosInstance.delete(`/crop-logs/${id}`);
+      // remove from list and reset selection
+      set((s) => {
+        const nextList = (s.cropLogs || []).filter((c) => c._id !== id);
+        const first = nextList.length ? nextList[0] : null;
+        return {
+          cropLogs: nextList,
+          selectedCropLogId: first?._id || null,
+          project: first?.project || null,
+          activities: first?.activities || [],
+        };
+      });
     } catch (err) {
       console.error("❌ Error deleting project:", err);
     }
   },
 
-  /* -------- Add activity -------- */
-  addActivity: async (projectId, activity) => {
-    try {
-      const res = await axiosInstance.post(
-        `/cropLogs/${projectId}/activities`,
-        activity
-      );
-      set((state) => ({
-        projects: state.projects.map((p) =>
-          p.id === projectId
-            ? { ...p, activities: [...(p.activities || []), res.data] }
-            : p
-        ),
-      }));
-    } catch (err) {
-      console.error("❌ Error adding activity:", err);
-    }
-  },
+  /**
+   * Add or update a single activity.
+   * - Accepts activity object that may contain:
+   *    - _id (server id)  OR
+   *    - id  (client id from UI)  OR
+   *    - clientId (preferred name)
+   *
+   * We:
+   * - translate id -> clientId if present
+   * - update matching activity by _id or clientId, otherwise push as new
+   * - send PUT /crop-logs/:id with { activities: updatedActivities }
+   */
 
-  /* -------- Update activity -------- */
-  updateActivity: async (projectId, activityId, data) => {
-    try {
-      const res = await axiosInstance.put(
-        `/cropLogs/${projectId}/activities/${activityId}`,
-        data
-      );
-      set((state) => ({
-        projects: state.projects.map((p) =>
-          p.id === projectId
-            ? {
-                ...p,
-                activities: p.activities.map((a) =>
-                  a.id === activityId ? { ...a, ...res.data } : a
-                ),
-              }
-            : p
-        ),
-      }));
-    } catch (err) {
-      console.error("❌ Error updating activity:", err);
-    }
-  },
 
-  /* -------- Delete activity -------- */
-  deleteActivity: async (projectId, activityId) => {
+addOrUpdateActivity: async (incomingActivity) => {
+  try {
+    const selectedId = get().selectedCropLogId;
+    const project = get().project;
+    if (!selectedId || !project) {
+      console.warn("No selected project to attach activity to");
+      return;
+    }
+
+    const activities = Array.isArray(get().activities) ? [...get().activities] : [];
+
+    // Normalize incoming
+    const incoming = { ...incomingActivity };
+
+    // Always ensure a clientId exists for tracking before _id is returned
+    if (!incoming._id && !incoming.clientId) {
+      incoming.clientId = uuidv4();
+    }
+
+    // Find existing activity by _id or clientId
+    let idx = -1;
+    if (incoming._id) {
+      idx = activities.findIndex((a) => a._id && a._id.toString() === incoming._id.toString());
+    }
+    if (idx === -1 && incoming.clientId) {
+      idx = activities.findIndex((a) => a.clientId === incoming.clientId);
+    }
+
+    if (idx > -1) {
+      // Update existing
+      activities[idx] = { ...activities[idx], ...incoming };
+    } else {
+      // Insert fresh
+      activities.push(incoming);
+    }
+
+    const res = await axiosInstance.put(`/crop-logs/${selectedId}`, {
+      activities,
+    });
+
+    const doc = res?.data?.data;
+    set({
+      project: doc?.project || project,
+      activities: doc?.activities || activities,
+    });
+  } catch (err) {
+    console.error("❌ Error adding/updating activity:", err);
+    throw err;
+  }
+},
+
+
+
+  // Delete an activity by activityId (server _id) or clientId (UI id)
+  deleteActivity: async (activityIdOrClientId) => {
     try {
-      await axiosInstance.delete(`/cropLogs/${projectId}/activities/${activityId}`);
-      set((state) => ({
-        projects: state.projects.map((p) =>
-          p.id === projectId
-            ? {
-                ...p,
-                activities: p.activities.filter((a) => a.id !== activityId),
-              }
-            : p
-        ),
-      }));
+      const selectedId = get().selectedCropLogId;
+      const activities = Array.isArray(get().activities) ? [...get().activities] : [];
+      if (!selectedId) return;
+
+      const filtered = activities.filter(
+        (a) => a._id?.toString() !== activityIdOrClientId?.toString() && a.clientId !== activityIdOrClientId
+      );
+
+      const res = await axiosInstance.put(`/crop-logs/${selectedId}`, {
+        activities: filtered,
+      });
+
+      const doc = res?.data?.data;
+      set({
+        project: doc?.project || get().project,
+        activities: doc?.activities || filtered,
+      });
     } catch (err) {
       console.error("❌ Error deleting activity:", err);
-    }
-  },
-
-  /* -------- Mark activity as Done -------- */
-  markActivityDone: async (projectId, activityId) => {
-    try {
-      const res = await axiosInstance.patch(
-        `/cropLogs/${projectId}/activities/${activityId}`,
-        { status: "Done" }
-      );
-      set((state) => ({
-        projects: state.projects.map((p) =>
-          p.id === projectId
-            ? {
-                ...p,
-                activities: p.activities.map((a) =>
-                  a.id === activityId ? { ...a, ...res.data } : a
-                ),
-              }
-            : p
-        ),
-      }));
-    } catch (err) {
-      console.error("❌ Error marking activity done:", err);
+      throw err;
     }
   },
 }));

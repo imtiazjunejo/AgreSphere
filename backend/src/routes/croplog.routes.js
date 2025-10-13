@@ -1,23 +1,23 @@
-// backend/routes/croplog.routes.js
-import { Router } from "express";
+// backend/routes/cropLogs.routes.js
+import express from "express";
 import {
-  createCropLog,
-  getMyCropLogs,
-  getCropLog,
+  getAllCropLogs,
+  getCropLogById,
+  createOrUpdateCropLog,
   updateCropLog,
   deleteCropLog,
 } from "../controllers/croplog.controller.js";
-import { protectedRoute } from "../middlewares/auth.middleware.js";
+import { protectedRoute } from "../middlewares/auth.middleware.js"; // ✅ import this
 
-const router = Router();
+const router = express.Router();
 
-// All croplog routes are protected: user must be authenticated
+// ✅ Apply protection to all crop log routes
 router.use(protectedRoute);
 
-router.post("/", createCropLog);       // create
-router.get("/", getMyCropLogs);       // list
-router.get("/:id", getCropLog);       // get single
-router.put("/:id", updateCropLog);    // update
-router.delete("/:id", deleteCropLog); // delete
+router.get("/", getAllCropLogs);
+router.get("/:id", getCropLogById);
+router.post("/", createOrUpdateCropLog);
+router.put("/:id", updateCropLog);
+router.delete("/:id", deleteCropLog);
 
 export default router;

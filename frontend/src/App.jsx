@@ -47,7 +47,7 @@ const App = () => {
 
         {/* Main content with top padding to avoid overlapping navbar */}
         <main
-  className={`flex-1 flex flex-col pt-16 bg-gray-200 transition-all duration-300 ${
+  className={`flex-1 flex flex-col pt-16 bg-gray-100 transition-all duration-300 ${
     authUser ? (isSidebarOpen ? "lg:ml-64" : "lg:ml-16") : ""
   }`}
 >

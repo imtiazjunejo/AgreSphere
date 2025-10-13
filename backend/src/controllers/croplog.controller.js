@@ -1,83 +1,120 @@
-// backend/controllers/croplog.controller.js
-import { asyncHandler } from "../utils/asyncHandler.js";
-import { ApiError } from "../utils/ApiError.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
+// backend/controllers/cropLogs.controller.js
 import CropLog from "../models/croplogs.model.js";
 
-/**
- * Create a new crop log for the authenticated user.
- * Expects JSON body: { project: {...}, activities: [...], saleAmount: number }
- */
-export const createCropLog = asyncHandler(async (req, res) => {
-  const user = req.user;
-  const { project = {}, activities = [], saleAmount = 0 } = req.body ?? {};
+// ✅ GET all crop logs for a user
+export const getAllCropLogs = async (req, res) => {
+  try {
+    const userId = req.user?._id;
+    const logs = await CropLog.find(userId ? { user: userId } : {}).lean();
 
-  const crop = await CropLog.create({
-    user: user._id,
-    project,
-    activities,
-    saleAmount: Number(saleAmount) || 0,
-  });
+    console.log(`✅ Fetched cropLogs: ${logs.length} for userId: ${userId}`);
+    res.json({ success: true, data: logs });
+  } catch (err) {
+    console.error("❌ Error fetching crop logs:", err);
+    res.status(500).json({ success: false, message: "Failed to fetch crop logs" });
+  }
+};
 
-  return res.status(201).json(new ApiResponse(201, crop, "Crop log created"));
-});
+// ✅ GET a single crop log by ID
+export const getCropLogById = async (req, res) => {
+  try {
+    const doc = await CropLog.findById(req.params.id);
+    if (!doc) return res.status(404).json({ success: false, message: "Crop log not found" });
+    res.json({ success: true, data: doc });
+  } catch (err) {
+    console.error("❌ Error fetching crop log:", err);
+    res.status(500).json({ success: false, message: "Failed to fetch crop log" });
+  }
+};
 
-/**
- * List crop logs owned by current user
- */
-export const getMyCropLogs = asyncHandler(async (req, res) => {
-  const user = req.user;
-  const items = await CropLog.find({ user: user._id }).sort({ createdAt: -1 });
-  return res.status(200).json(new ApiResponse(200, items, "User crop logs"));
-});
+// ✅ CREATE or UPDATE crop log (project + sale amount)
+export const createOrUpdateCropLog = async (req, res) => {
+  try {
+    const { project, saleAmount } = req.body;
+    const userId = req.user?._id;
 
-/**
- * Retrieve a single crop log by id (owner only).
- */
-export const getCropLog = asyncHandler(async (req, res) => {
-  const user = req.user;
-  const { id } = req.params;
-  const item = await CropLog.findById(id);
-  if (!item) throw new ApiError(404, "Crop log not found");
-  if (item.user.toString() !== user._id.toString()) throw new ApiError(403, "Forbidden");
-  return res.status(200).json(new ApiResponse(200, item, "Crop log"));
-});
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: user not logged in",
+      });
+    }
 
-/**
- * Update crop log fields (project, activities, saleAmount).
- * Partial updates allowed; ownership enforced.
- */
-export const updateCropLog = asyncHandler(async (req, res) => {
-  const user = req.user;
-  const { id } = req.params;
-  const payload = req.body ?? {};
+    // Convert saleAmount to a safe number
+    const numericSale = saleAmount ? Number(saleAmount) : 0;
 
-  const item = await CropLog.findById(id);
-  if (!item) throw new ApiError(404, "Crop log not found");
-  if (item.user.toString() !== user._id.toString()) throw new ApiError(403, "Forbidden");
+    if (!project || !project.name) {
+      return res.status(400).json({ success: false, message: "Project details are required" });
+    }
 
-  if (payload.project) item.project = payload.project;
-  if (Array.isArray(payload.activities)) item.activities = payload.activities;
-  if (payload.saleAmount !== undefined) item.saleAmount = Number(payload.saleAmount) || 0;
+    // ✅ Find existing crop log
+    let existing = await CropLog.findOne({ user: userId, "project.name": project.name });
 
-  await item.save();
-  return res.status(200).json(new ApiResponse(200, item, "Crop log updated"));
-});
+    if (existing) {
+      existing.project = { ...existing.project, ...project };
+      existing.saleAmount = !isNaN(numericSale) ? numericSale : existing.saleAmount;
 
-/**
- * Delete a crop log (owner only).
- */
-export const deleteCropLog = asyncHandler(async (req, res) => {
-  const user = req.user;
-  const { id } = req.params;
-  const item = await CropLog.findById(id);
-  if (!item) throw new ApiError(404, "Crop log not found");
-  if (item.user.toString() !== user._id.toString()) throw new ApiError(403, "Forbidden");
+      await existing.save();
+      console.log(`✅ Updated cropLog: ${existing._id}, SaleAmount: ${existing.saleAmount}`);
+      return res.json({ success: true, data: existing });
+    }
 
-  await item.remove();
-  return res.status(200).json(new ApiResponse(200, null, "Crop log deleted"));
-});
+    // ✅ Create new crop log
+    const newDoc = new CropLog({
+      user: userId,
+      project,
+      saleAmount: !isNaN(numericSale) ? numericSale : 0,
+    });
 
+    await newDoc.save();
+    console.log(`✅ Created cropLog: ${newDoc._id}, SaleAmount: ${newDoc.saleAmount}`);
+    res.json({ success: true, data: newDoc });
+  } catch (err) {
+    console.error("❌ Error creating/updating crop log:", err);
+    res.status(500).json({ success: false, message: "Failed to create/update crop log" });
+  }
+};
 
+// ✅ UPDATE crop log (activities, project, or sale amount)
+export const updateCropLog = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { activities, project, saleAmount } = req.body;
 
+    const numericSale =
+      saleAmount !== undefined && saleAmount !== null ? Number(saleAmount) : undefined;
 
+    const updateFields = {
+      ...(project ? { project } : {}),
+      ...(Array.isArray(activities) ? { activities } : {}),
+      ...(numericSale !== undefined && !isNaN(numericSale)
+        ? { saleAmount: numericSale }
+        : {}),
+    };
+
+    const updated = await CropLog.findByIdAndUpdate(id, updateFields, { new: true });
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: "Crop log not found" });
+    }
+
+    console.log(`✅ Updated cropLog: ${updated._id}, SaleAmount: ${updated.saleAmount}`);
+    res.json({ success: true, data: updated });
+  } catch (err) {
+    console.error("❌ Error updating crop log:", err);
+    res.status(500).json({ success: false, message: "Failed to update crop log" });
+  }
+};
+
+// ✅ DELETE crop log
+export const deleteCropLog = async (req, res) => {
+  try {
+    const id = req.params.id;
+    await CropLog.findByIdAndDelete(id);
+    console.log(`🗑️ Deleted cropLog: ${id}`);
+    res.json({ success: true, message: "Deleted" });
+  } catch (err) {
+    console.error("❌ Error deleting crop log:", err);
+    res.status(500).json({ success: false, message: "Failed to delete crop log" });
+  }
+};
