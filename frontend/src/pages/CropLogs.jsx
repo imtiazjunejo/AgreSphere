@@ -166,7 +166,8 @@ console.log("📌 fetchProject is a function?", typeof fetchProject);
     });
 
     // ✅ Refresh project from backend to keep data in sync
-    await fetchProject();
+
+    setSaleAmount(Number(saleAmount));
 
     setDistribution(computeDistribution());
     };

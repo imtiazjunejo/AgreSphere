@@ -27,7 +27,16 @@ export const getCropLogById = async (req, res) => {
   }
 };
 
-// ✅ CREATE or UPDATE crop log (project + sale amount)
+/**
+ * CREATE or UPDATE crop log (project + sale amount)
+ *
+ * Accepts either:
+ * - { project: {...}, saleAmount: 123 }
+ * OR
+ * - { project: { ..., saleAmount: 123 } }
+ *
+ * This function normalizes saleAmount from either place and stores it correctly.
+ */
 export const createOrUpdateCropLog = async (req, res) => {
   try {
     const { project, saleAmount } = req.body;
@@ -40,18 +49,27 @@ export const createOrUpdateCropLog = async (req, res) => {
       });
     }
 
-    // Convert saleAmount to a safe number
-    const numericSale = saleAmount ? Number(saleAmount) : 0;
-
     if (!project || !project.name) {
       return res.status(400).json({ success: false, message: "Project details are required" });
     }
 
-    // ✅ Find existing crop log
+    // Normalize sale amount: prefer top-level saleAmount, else fallback to project.saleAmount
+    let numericSale;
+    if (saleAmount !== undefined && saleAmount !== null) {
+      numericSale = Number(saleAmount);
+    } else if (project && project.saleAmount !== undefined && project.saleAmount !== null) {
+      numericSale = Number(project.saleAmount);
+    } else {
+      numericSale = 0;
+    }
+    if (isNaN(numericSale)) numericSale = 0;
+
+    // ✅ Find existing crop log by user + project name
     let existing = await CropLog.findOne({ user: userId, "project.name": project.name });
 
     if (existing) {
-      existing.project = { ...existing.project, ...project };
+      existing.project = { ...existing.project.toObject ? existing.project.toObject() : existing.project, ...project };
+      // Only update saleAmount if numericSale is a valid number (we treat NaN as "do not set")
       existing.saleAmount = !isNaN(numericSale) ? numericSale : existing.saleAmount;
 
       await existing.save();
@@ -81,15 +99,20 @@ export const updateCropLog = async (req, res) => {
     const id = req.params.id;
     const { activities, project, saleAmount } = req.body;
 
-    const numericSale =
-      saleAmount !== undefined && saleAmount !== null ? Number(saleAmount) : undefined;
+    // Determine numeric sale: prefer top-level saleAmount, then project.saleAmount
+    let numericSale;
+    if (saleAmount !== undefined && saleAmount !== null) {
+      numericSale = Number(saleAmount);
+    } else if (project && project.saleAmount !== undefined && project.saleAmount !== null) {
+      numericSale = Number(project.saleAmount);
+    } else {
+      numericSale = undefined; // means "do not change" if not provided
+    }
 
     const updateFields = {
       ...(project ? { project } : {}),
       ...(Array.isArray(activities) ? { activities } : {}),
-      ...(numericSale !== undefined && !isNaN(numericSale)
-        ? { saleAmount: numericSale }
-        : {}),
+      ...(numericSale !== undefined && !isNaN(numericSale) ? { saleAmount: numericSale } : {}),
     };
 
     const updated = await CropLog.findByIdAndUpdate(id, updateFields, { new: true });
