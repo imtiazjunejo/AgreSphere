@@ -1,17 +1,8 @@
 import { create } from "zustand";
 import { axiosInstance } from "../lib/axios";
- import { v4 as uuidv4 } from "uuid";
+import { v4 as uuidv4 } from "uuid";
 
-/**
- * Store responsibilities:
- * - maintain list of cropLogs (for listing)
- * - maintain selectedCropLogId (current open project)
- * - keep `project` as the project subdocument (NOT the full cropLog doc)
- * - keep `activities` synced with backend
- *
- * Backend responses are assumed to be ApiResponse-like:
- * { data: <payload> } so we use res.data.data
- */
+
 export const useCropLogsStore = create((set, get) => ({
   cropLogs: [],            // list of cropLog documents (full docs)
   selectedCropLogId: null, // currently opened cropLog._id
@@ -91,10 +82,20 @@ export const useCropLogsStore = create((set, get) => ({
     }
   },
 
+    // Manually set current open project (from list)
+  setProject: (projectDoc) => {
+    set({
+      selectedCropLogId: projectDoc?._id || null,
+      project: projectDoc?.project || null,
+      activities: projectDoc?.activities || [],
+    });
+  },
+
+
   // Delete a cropLog by currently selected id
-  deleteSelectedProject: async () => {
+  deleteSelectedProject: async (idParam) => {
     try {
-      const id = get().selectedCropLogId;
+      const id = idParam || get().selectedCropLogId;
       if (!id) return;
       await axiosInstance.delete(`/crop-logs/${id}`);
       // remove from list and reset selection
@@ -113,19 +114,9 @@ export const useCropLogsStore = create((set, get) => ({
     }
   },
 
-  /**
-   * Add or update a single activity.
-   * - Accepts activity object that may contain:
-   *    - _id (server id)  OR
-   *    - id  (client id from UI)  OR
-   *    - clientId (preferred name)
-   *
-   * We:
-   * - translate id -> clientId if present
-   * - update matching activity by _id or clientId, otherwise push as new
-   * - send PUT /crop-logs/:id with { activities: updatedActivities }
-   */
 
+
+  
 
 addOrUpdateActivity: async (incomingActivity) => {
   try {

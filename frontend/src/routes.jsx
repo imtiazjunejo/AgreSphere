@@ -3,6 +3,7 @@ import HomePage from './pages/HomePage';
 import DashboardPage from './pages/DashboardPage';
 import LandManagement from './pages/LandManagement';
 import FarmerNetwork from './pages/FarmerNetwork';
+import ConnectionsRequests from "./pages/ConnectionsRequests";
 import CropGuidance from './pages/CropGuidance';
 import WeatherForcast from './pages/WeatherForcast';
 import NotFound from './pages/NotFound';
@@ -18,9 +19,11 @@ const AppRoutes = () => {
       <Route path="/" element={<HomePage />} />
       <Route path="/dashboard" element={<DashboardPage />} />
       <Route path="/crop-logs" element={<CropLogs />} />
+      <Route path="/crop-logs/:id" element={<CropLogs />} />
       <Route path="/profit-loss" element={<ProfitLoss />} />
       <Route path="/landmanagement" element={<LandManagement />} />
-      <Route path="/farmerNetwork" element={<FarmerNetwork />} />
+      <Route path="/network" element={<FarmerNetwork />} />
+      <Route path="/connection-requests" element={<ConnectionsRequests />} />
       <Route path="/cropGuidance" element={<CropGuidance />} />
       <Route path="/weather" element={<WeatherForcast />} />
       <Route path="*" element={<NotFound />} />

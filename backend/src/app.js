@@ -23,6 +23,8 @@ import authRouter from "./routes/auth.routes.js";
 import messageRouter from "./routes/message.routes.js";
 import croplogRouter from "./routes/croplog.routes.js";
 import profitLossRouter from "./routes/profitLoss.routes.js";
+import farmerNetworkRoutes from "./routes/farmerNetwork.routes.js";
+import connectionRoutes from "./routes/connection.routes.js";
 
 
 // Routes calls
@@ -30,5 +32,8 @@ app.use("/api/v1/auth", authRouter)
 app.use("/api/v1/message", messageRouter)
 app.use("/api/v1/crop-logs", croplogRouter);
 app.use("/api/v1/profitloss", profitLossRouter);
+app.use("/api/v1/network", farmerNetworkRoutes);
+app.use("/api/v1", connectionRoutes);
+
 
 app.use(errorHandler)

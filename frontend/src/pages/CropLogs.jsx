@@ -1,7 +1,10 @@
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Download } from "lucide-react";
 import { exportToPDF, exportToWord, exportToExcel } from "../utils/exportUtils";
 import { useCropLogsStore } from "../store/useCropLogsStore";  // ✅ backend store
+
+
 
 // small currency formatter
 const fmt = (n) =>
@@ -13,15 +16,23 @@ const fmt = (n) =>
     : "Rs 0.00";
 
 export default function CropLogs() {
+
+  const navigate = useNavigate()
+
   const {
-    project,
-    activities,
-    fetchProject,
-    createOrUpdateProject,
-    deleteProject,
-    addOrUpdateActivity,
-    deleteActivity,
-  } = useCropLogsStore();
+  cropLogs,
+  project,
+  activities,
+  setProject,
+  fetchCropLogById,
+  fetchProject,
+  createOrUpdateProject,
+  deleteSelectedProject,
+  addOrUpdateActivity,
+  deleteActivity,
+} = useCropLogsStore();
+
+
 
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showActivityModal, setShowActivityModal] = useState(false);
@@ -65,9 +76,9 @@ console.log("📌 fetchProject is a function?", typeof fetchProject);
     setDistribution(null);
   };
 
-  const handleDeleteProject = async () => {
+  const handleDeleteProject = async (id) => {
     if (!confirm("Delete this project?")) return;
-    await deleteProject();
+    await deleteSelectedProject(id);
     setSaleAmount("");
     setDistribution(null);
   };
@@ -171,39 +182,111 @@ console.log("📌 fetchProject is a function?", typeof fetchProject);
 
     setDistribution(computeDistribution());
     };
+// ---------------- UI ----------------
+if (!project) {
+  return (
+    <div className="p-10 min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center bg-gray-50">
+      <div className="max-w-2xl w-full bg-white rounded-xl shadow-lg p-8 text-center">
+        <h2 className="text-2xl font-bold mb-6">Your Crop Projects</h2>
 
-  // ---------------- UI ----------------
-  if (!project) {
-    return (
-      <div className="p-10 min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gray-50">
-        <div className="max-w-2xl w-full bg-white rounded-xl shadow-lg p-8 text-center">
-          <h2 className="text-2xl font-bold mb-2">No Crop Project</h2>
-          <p className="text-gray-600 mb-6">
-            Create a project to track activities, expenses and distribution.
-          </p>
-          <div className="flex justify-center gap-3">
-            <button
-              onClick={() => {
-                setIsEditingProject(false);
-                setShowProjectModal(true);
-              }}
-              className="px-6 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white shadow"
-            >
-              ➕ New Crop Project
-            </button>
-          </div>
-        </div>
+        {/* Existing Projects List */}
+        {cropLogs && cropLogs.length > 0 ? (
+          <>
+            <div className="space-y-3 mb-6">
+              {cropLogs.map((log) => (
+                <div
+                  key={log._id}
+                  className="flex justify-between items-center p-3 border rounded-md bg-gray-50 hover:bg-gray-100 transition"
+                >
+                  <div className="text-left">
+                    <h3 className="font-semibold text-lg text-green-700">
+                      {log.project?.name || "Unnamed Crop"}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {log.project?.fieldArea
+                        ? `${log.project.fieldArea} acres`
+                        : "—"}{" "}
+                      ·{" "}
+                      {log.project?.startDate
+                        ? new Date(log.project.startDate).toLocaleDateString()
+                        : "—"}
+                    </p>
+                  </div>
 
-        {showProjectModal && (
-          <ProjectModal
-            project={null}
-            onClose={() => setShowProjectModal(false)}
-            onSubmit={handleCreateOrUpdateProject}
-          />
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={
+                      () => {
+                        fetchCropLogById(log._id)
+                        navigate(`/crop-logs/${log.project?.name}`)
+                      }
+                    }
+                      
+                      className="px-4 py-1 bg-green-600 hover:bg-green-700 text-white rounded-md"
+                    >
+                      Open
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleDeleteProject(log._id)
+                      }}
+                      className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md"
+                    >
+                      🗑
+                    </button>
+          {/* <ActionButton onClick={handleDeleteProject} color="red" icon={<Trash2 size={16} />}>Delete</ActionButton> */}
+
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Add new project button at the end */}
+            <div className="flex justify-center">
+              <button
+                onClick={() => {
+                  setIsEditingProject(false);
+                  setShowProjectModal(true);
+                }}
+                className="px-6 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white shadow"
+              >
+                ➕ New Crop Project
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h3 className="text-xl font-semibold mb-2">No Crop Project</h3>
+            <p className="text-gray-600 mb-6">
+              Create a project to track activities, expenses and distribution.
+            </p>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={() => {
+                  setIsEditingProject(false);
+                  setShowProjectModal(true);
+                }}
+                className="px-6 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white shadow"
+              >
+                ➕ New Crop Project
+              </button>
+            </div>
+          </>
         )}
       </div>
-    );
-  }
+
+      {/* Project Modal */}
+      {showProjectModal && (
+        <ProjectModal
+          project={null}
+          onClose={() => setShowProjectModal(false)}
+          onSubmit={handleCreateOrUpdateProject}
+        />
+      )}
+    </div>
+  );
+}
+
 
   // ✅ From here down, your UI stays unchanged (activities table, modals, buttons…)
   // The only difference is that project & activities are synced from backend.
@@ -617,3 +700,12 @@ function ActionButton({ color = "green", onClick, children, icon }) {
     </button>
   );
 }
+
+
+
+
+
+
+
+
+
