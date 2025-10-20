@@ -7,9 +7,19 @@ import { generateTokn } from "../utils/generateToken.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 export const signupUser = asyncHandler(async (req, res) => {
-  const { firstName = "", lastName = "", email = "", password = "" } = req.body ?? {};
+  const {
+  firstName = "",
+  lastName = "",
+  email = "",
+  password = "",
+  location = "",
+  phone = "",
+  role = "Farmer",
+  bio = ""
+} = req.body ?? {};
 
-  if (![firstName, lastName, email, password].every((v) => typeof v === "string" && v.trim())) {
+
+  if (![firstName, lastName, email, password, role, location].every((v) => typeof v === "string" && v.trim())) {
     throw new ApiError(400, "All fields are required.");
   }
 
@@ -27,31 +37,41 @@ export const signupUser = asyncHandler(async (req, res) => {
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
 
+
   const newUser = await User.create({
-    firstName: firstName.trim(),
-    lastName: lastName.trim(),
-    email: normalizedEmail,
-    password: hashedPassword,
-  });
+  firstName: firstName.trim(),
+  lastName: lastName.trim(),
+  email: normalizedEmail,
+  password: hashedPassword,
+  location,
+  phone,
+  role,
+  bio,
+});
+
 
   console.log(newUser)
   generateTokn(newUser._id, res);
 
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        {
-          _id: newUser._id,
-          firstName: newUser.firstName,
-          lastName: newUser.lastName,
-          email: newUser.email,
-          profilePic: newUser.profilePic,
-        },
-        "User has been signup successfully"
-      )
-    );
+  
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        _id: newUser._id,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        email: newUser.email,
+        profilePic: newUser.profilePic,
+        role: newUser.role,
+        location: newUser.location,
+        phone: newUser.phone,
+        bio: newUser.bio,
+      },
+      "User has been signup successfully"
+    )
+  );
+
 });
 
 export const loginUser = asyncHandler(async (req, res) => {

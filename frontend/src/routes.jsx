@@ -12,6 +12,7 @@ import { Contact } from 'lucide-react';
 import ContactPage from './pages/ContactPage';
 import CropLogs from './pages/CropLogs';
 import ProfitLoss from './pages/ProfitLoss';
+import Profile from './pages/ProfilePage';
 
 const AppRoutes = () => {
   return (
@@ -26,6 +27,8 @@ const AppRoutes = () => {
       <Route path="/connection-requests" element={<ConnectionsRequests />} />
       <Route path="/cropGuidance" element={<CropGuidance />} />
       <Route path="/weather" element={<WeatherForcast />} />
+      <Route path="/profile" element={<Profile />} />
+      
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { MessageSquare, Loader2, Eye, EyeOff } from "lucide-react";
 import { Link } from "react-router-dom";
+import toast from "react-hot-toast"; // ✅ Added
 
 const FloatingInput = ({
   id,
@@ -31,7 +32,7 @@ const FloatingInput = ({
       />
       <label
         htmlFor={id}
-        className={`absolute left-3 -top-2 px-1 bg-gray-200 text-sm transition-all duration-200
+        className={`absolute left-3 -top-2 px-1 bg-gray-100 text-sm transition-all duration-200
           peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-500 peer-placeholder-shown:px-0
           peer-focus:-top-2 peer-focus:text-sm peer-focus:px-2
           ${error && touched ? "text-red-500" : "text-gray-500 peer-focus:text-gray-500"}
@@ -55,6 +56,10 @@ const SignUpPage = () => {
     email: "",
     password: "",
     confirmPassword: "",
+    role: "",
+    location: "",
+    phone: "",
+    bio: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -101,7 +106,7 @@ const SignUpPage = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
     Object.keys(formData).forEach((field) => {
@@ -118,7 +123,19 @@ const SignUpPage = () => {
     });
 
     if (Object.keys(newErrors).length === 0) {
-      signup(formData);
+      try {
+        await signup(formData);
+        
+      } catch (error) {
+        // ✅ Error Toasts
+        if (error.response?.status === 409) {
+          toast.error("Email already exists ⚠️");
+        } else if (error.response?.status === 400) {
+          toast.error("Please fill all required fields!");
+        } else {
+          toast.error("Something went wrong. Please try again later.");
+        }
+      }
     }
   };
 
@@ -127,9 +144,6 @@ const SignUpPage = () => {
       <div className="w-full max-w-lg bg-gray-200 rounded-2xl shadow-lg p-8 mt-14">
         <div className="text-center mb-6">
           <div className="flex flex-col items-center gap-1 group">
-            <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center group-hover:bg-green-500/20 transition-colors">
-              <MessageSquare className="w-6 h-6 text-green-600" />
-            </div>
             <h1 className="text-2xl font-bold mt-2 text-gray-800">
               Create Account
             </h1>
@@ -220,6 +234,54 @@ const SignUpPage = () => {
             >
               {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
+          </div>
+
+          {/* New Fields */}
+          <FloatingInput
+            id="location"
+            label="Location"
+            value={formData.location}
+            onChange={(e) => handleChange("location", e.target.value)}
+            onBlur={() => handleBlur("location")}
+            error={errors.location}
+            touched={touchedFields.location}
+          />
+
+          <FloatingInput
+            id="phone"
+            label="Phone Number"
+            value={formData.phone}
+            onChange={(e) => handleChange("phone", e.target.value)}
+            onBlur={() => handleBlur("phone")}
+            error={errors.phone}
+            touched={touchedFields.phone}
+          />
+
+          <div>
+            <label className="block mb-2 text-gray-600 font-medium">Role</label>
+            <select
+              value={formData.role}
+              onChange={(e) => handleChange("role", e.target.value)}
+              className="w-full border border-gray-400 rounded-lg p-2 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-400"
+            >
+              
+              <option value="">--select role--</option>
+              <option value="Farmer">Farmer</option>
+              <option value="landloard">Landloard</option>
+              <option value="labourer">labourer</option>
+              <option value="stackholder">StackHolder</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block mb-2 text-gray-600 font-medium">Bio</label>
+            <textarea
+              value={formData.bio}
+              onChange={(e) => handleChange("bio", e.target.value)}
+              placeholder="Tell us about yourself..."
+              className="w-full border border-gray-400 rounded-lg p-2 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-gray-400"
+              rows="3"
+            />
           </div>
 
           <button

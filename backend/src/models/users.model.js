@@ -12,8 +12,7 @@ const userSchema = new mongoose.Schema(
             required: true
         },
         lastName: {
-            type: String,
-            required: true
+            type: String
         },
         password: {
             type: String,
@@ -23,7 +22,18 @@ const userSchema = new mongoose.Schema(
         profilePic: {
             type: String,
             default: ""
-        }
+        },
+        coverImage: {
+            type: String,
+            default: ""
+        },
+
+        location: { type: String, default: "" },
+        phone: { type: String, default: "" },
+        role: { type: String, enum: ["Farmer", "landloard", "labourer", "stackholder"], default: "Farmer" },
+        bio: { type: String, default: "" },
+
+
 
     },
     {timestamps: true}

@@ -22,61 +22,71 @@ export const useAuthStore = create((set) => ({
     }
   },
 
-  signup: async (data) => {
-    set({ isSigningUp: true });
-    try {
-      const res = await axiosInstance.post("/auth/signup", data);
-      set({ authUser: res.data.data });
-      toast.success("Account created successfully ✅");
-      return true;
-    } catch (error) {
-      const backendMessage = error.response?.data?.message;
-      const status = error.response?.status;
+signup: async (data) => {
+  set({ isSigningUp: true });
+  try {
+    const res = await axiosInstance.post("/auth/signup", data);
 
-      if (status === 409) {
-        toast.error(backendMessage || "User already exists, please login.");
-      } else {
-        toast.error(backendMessage || "Something went wrong while signing up");
-      }
-      return false;
-    } finally {
-      set({ isSigningUp: false });
+    // ✅ Only show success once and only if the request actually succeeded
+    set({ authUser: res.data.data });
+    toast.success("Account created successfully ✅", { duration: 3000 });
+    return true;
+
+  } catch (error) {
+    const backendMessage = error.response?.data?.message;
+    const status = error.response?.status;
+
+    if (status === 400) {
+      toast.error(backendMessage || "All fields are required.");
+    } else if (status === 409) {
+      toast.error(backendMessage || "User already exists, please login.");
+    } else {
+      toast.error(backendMessage || "Something went wrong while signing up.");
     }
-  },
-  
-  login: async (data) => {
-    set({ isLoggingIn: true });
 
-    try {
-      const res = await axiosInstance.post("/auth/login", data);
+    return false;
+  } finally {
+    set({ isSigningUp: false });
+  }
+},
 
-      set({ authUser: res.data.data });
-      return { success: true };
-    } catch (error) {
-      const backendMessage = error.response?.data?.message;
-      const status = error.response?.status;
 
-      let field = null;
-      let message = backendMessage || "Something went wrong while logging in.";
+login: async (data) => {
+  set({ isLoggingIn: true });
+  try {
+    const res = await axiosInstance.post("/auth/login", data);
+    set({ authUser: res.data.data });
+    toast.success("Logged in successfully ✅", { duration: 3000 });
+    return { success: true };
 
-      if (status === 400) {
+  } catch (error) {
+    const backendMessage = error.response?.data?.message;
+    const status = error.response?.status;
+
+    let field = null;
+    let message = backendMessage || "Something went wrong while logging in.";
+
+    if (status === 400) {
+      field = "email";
+      message = "All fields are required.";
+    } else if (status === 401) {
+      if (backendMessage?.toLowerCase().includes("user does not")) {
         field = "email";
-        message = "All fields are required.";
-      } else if (status === 401) {
-        if (backendMessage?.toLowerCase().includes("user does not")) {
-          field = "email";
-          message = "User does not exist.";
-        } else if (backendMessage?.toLowerCase().includes("incorrect password")) {
-          field = "password";
-          message = "Incorrect password.";
-        }
+        message = "User does not exist.";
+      } else if (backendMessage?.toLowerCase().includes("incorrect password")) {
+        field = "password";
+        message = "Incorrect password.";
       }
-
-      return { success: false, field, message };
-    } finally {
-      set({ isLoggingIn: false });
     }
-  },
+
+    toast.error(message, { duration: 3000 });
+    return { success: false, field, message };
+
+  } finally {
+    set({ isLoggingIn: false });
+  }
+},
+
 
   logout: async () => {
     try {
