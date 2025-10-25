@@ -25,7 +25,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // ✅ Static folders
-app.use("/uploads", express.static(path.join(__dirname, "./public/uploads")));
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 app.use("/temp", express.static(path.join(__dirname, "../temp"))); // for temp images
 app.use("/public", express.static(path.join(__dirname, "../public")));
 app.use(express.static(path.join(__dirname, "../public"))); // fallback
