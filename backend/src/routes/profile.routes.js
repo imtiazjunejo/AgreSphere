@@ -9,8 +9,8 @@ const router = express.Router();
 // GET current user profile
 router.get("/me", protectedRoute, getCurrentUser);
 
-// PUT update profile
-router.put(
+// PATCH update profile (using PATCH instead of PUT for partial updates)
+router.patch(
   "/update",
   protectedRoute,
   upload.fields([

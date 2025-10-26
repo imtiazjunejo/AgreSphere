@@ -17,6 +17,7 @@ export const useProfileStore = create((set, get) => ({
 
     set({ isLoading: true });
     try {
+      // Updated endpoint to match backend route
       const res = await axiosInstance.get("/profile/me");
       const userData = res.data.data; // Access the data property from ApiResponse
 
@@ -43,7 +44,8 @@ export const useProfileStore = create((set, get) => ({
 
     set({ isUpdating: true });
     try {
-      const res = await axiosInstance.put("/profile/update", formData, {
+      // Updated endpoint to match backend route
+      const res = await axiosInstance.patch("/profile/update", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 

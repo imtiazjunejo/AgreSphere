@@ -10,17 +10,17 @@ const ProfileEditForm = ({
   isUpdating
 }) => {
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-8">
+    <div className="p-8">
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Edit Profile</h2>
-        <p className="text-gray-600">Update your personal information and preferences</p>
+        <h2 className="text-3xl font-bold text-gray-900 mb-3">Edit Profile</h2>
+        <p className="text-gray-600 text-lg">Update your personal information and preferences</p>
       </div>
 
       <form onSubmit={onSubmit} className="space-y-6">
         {/* Personal Information */}
-        <div className="bg-gray-50 rounded-xl p-6">
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <User className="w-5 h-5 mr-2 text-gray-600" />
+            <User className="w-5 h-5 mr-2 text-green-600" />
             Personal Information
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -54,9 +54,9 @@ const ProfileEditForm = ({
         </div>
 
         {/* Contact Information */}
-        <div className="bg-gray-50 rounded-xl p-6">
+        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 border border-blue-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <Mail className="w-5 h-5 mr-2 text-gray-600" />
+            <Mail className="w-5 h-5 mr-2 text-blue-600" />
             Contact Information
           </h3>
           <div className="space-y-4">
@@ -101,9 +101,9 @@ const ProfileEditForm = ({
         </div>
 
         {/* Security */}
-        <div className="bg-gray-50 rounded-xl p-6">
+        <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-xl p-6 border border-red-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <Shield className="w-5 h-5 mr-2 text-gray-600" />
+            <Shield className="w-5 h-5 mr-2 text-red-600" />
             Security
           </h3>
           <div className="relative">
@@ -127,8 +127,11 @@ const ProfileEditForm = ({
         </div>
 
         {/* Bio */}
-        <div className="bg-gray-50 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">About Me</h3>
+        <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-6 border border-purple-100">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <User className="w-5 h-5 mr-2 text-purple-600" />
+            About Me
+          </h3>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
             <textarea
@@ -146,13 +149,13 @@ const ProfileEditForm = ({
         <div className="flex gap-4 pt-6">
           <button
             type="submit"
-            className="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 bg-gradient-to-r from-green-600 to-teal-600 text-white py-4 px-6 rounded-xl font-semibold hover:from-green-700 hover:to-teal-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
             disabled={isUpdating}
           >
             {isUpdating ? (
               <>
                 <Loader2 className="animate-spin w-5 h-5 mr-2" />
-                Saving...
+                Saving Changes...
               </>
             ) : (
               <>
@@ -164,7 +167,7 @@ const ProfileEditForm = ({
           <button
             type="button"
             onClick={onCancel}
-            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200"
+            className="px-6 py-4 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-400 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200"
           >
             Cancel
           </button>

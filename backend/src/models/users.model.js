@@ -1,3 +1,4 @@
+// backend/src/models/user.model.js
 import mongoose from 'mongoose'
 
 const userSchema = new mongoose.Schema(
@@ -27,14 +28,10 @@ const userSchema = new mongoose.Schema(
             type: String,
             default: ""
         },
-
         location: { type: String, default: "" },
         phone: { type: String, default: "" },
         role: { type: String, enum: ["Farmer", "landloard", "labourer", "stackholder"], default: "Farmer" },
         bio: { type: String, default: "" },
-
-
-
     },
     {timestamps: true}
 )
@@ -42,4 +39,3 @@ const userSchema = new mongoose.Schema(
 const User = mongoose.model("User", userSchema);
 
 export default User
-
