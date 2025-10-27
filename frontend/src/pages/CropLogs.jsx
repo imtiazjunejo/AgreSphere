@@ -392,7 +392,7 @@ if (!project) {
                 {activities.map((a) => (
                   <li key={a._id} className="flex justify-between text-sm">
                     <span className="text-gray-700">{a.activity} — {a.date}</span>
-                    <span className="text-red-600 font-medium">{fmt(a.cost)}</span>
+                    <span className="text-gray-600 font-medium">{fmt(a.cost)}</span>
                   </li>
                 ))}
               </ul>
@@ -404,7 +404,7 @@ if (!project) {
           )}
         </div>
 
-        <div className="bg-gray-3a00 rounded-xl shadow p-4">
+        <div className="bg-gray-300 rounded-xl shadow p-4">
           <h3 className="font-semibold mb-3 text-gray-900">Sale & Distribution</h3>
 
           <div className="space-y-2 text-sm">
@@ -420,7 +420,7 @@ if (!project) {
 
             <div className="flex justify-between border-t border-gray-500 pt-2">
               <span className="text-gray-900 font-medium">Net Profit</span>
-              <strong className="text-blue-600">{fmt(Number(saleAmount || 0) - totalExpenses)}</strong>
+              <strong className="text-gray-600">{fmt(Number(saleAmount || 0) - totalExpenses)}</strong>
             </div>
 
             {/* show distribution only after calculate */}
@@ -431,18 +431,18 @@ if (!project) {
                   <>
                     <div className="flex justify-between">
                       <span className="text-gray-700">Landowner (50%)</span>
-                      <strong className="text-blue-600">{fmt(distribution.landOwnerShare)}</strong>
+                      <strong className="text-gray-600">{fmt(distribution.landOwnerShare)}</strong>
                     </div>
                     {project.hasFarmer && project.farmers.length > 0 && (
                       <>
                         <div className="flex justify-between">
                           <span className="text-gray-700">Farmers (total 25%)</span>
-                          <strong className="text-purple-600">{fmt(distribution.farmerTotalShare)}</strong>
+                          <strong className="text-gray-600">{fmt(distribution.farmerTotalShare)}</strong>
                         </div>
                         {project.farmers.map((f, idx) => (
                           <div key={idx} className="flex justify-between text-sm text-gray-600">
                             <span>— {f || `Farmer ${idx + 1}`}</span>
-                            <span className="text-purple-600">{fmt(distribution.perFarmer)}</span>
+                            <span className="text-gray-600">{fmt(distribution.perFarmer)}</span>
                           </div>
                         ))}
                       </>
@@ -460,12 +460,12 @@ if (!project) {
                     {project.hasFarmer && (
                       <div className="flex justify-between">
                         <span className="text-gray-700">Farmers (total 25%)</span>
-                        <strong className="text-purple-600">{fmt(distribution.farmerTotalShare)}</strong>
+                        <strong className="text-gray-600">{fmt(distribution.farmerTotalShare)}</strong>
                       </div>
                     )}
                     <div className="flex justify-between">
                       <span className="text-gray-700">Your share before lease</span>
-                      <strong className="text-blue-600">{fmt(distribution.netProfit - distribution.farmerTotalShare)}</strong>
+                      <strong className="text-gray-600">{fmt(distribution.netProfit - distribution.farmerTotalShare)}</strong>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-700">Lease (deducted from your share)</span>
@@ -485,12 +485,12 @@ if (!project) {
                       <>
                         <div className="flex justify-between">
                           <span className="text-gray-700">Farmers (total 25%)</span>
-                          <strong className="text-purple-600">{fmt(distribution.farmerTotalShare)}</strong>
+                          <strong className="text-gray-600">{fmt(distribution.farmerTotalShare)}</strong>
                         </div>
                         {project.farmers.map((f, idx) => (
                           <div key={idx} className="flex justify-between text-sm text-gray-600">
                             <span>— {f || `Farmer ${idx + 1}`}</span>
-                            <span className="text-purple-600">{fmt(distribution.perFarmer)}</span>
+                            <span className="text-gray-600">{fmt(distribution.perFarmer)}</span>
                           </div>
                         ))}
                       </>
